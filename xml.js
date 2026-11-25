@@ -415,6 +415,7 @@
     state.destroy = () => {
       if (!state.active) return;
       state.active = false;
+      state.request?.abort();
       cancelAnimationFrame(state.motionFrame);
       // An old controller must not clear a replacement mounted on the same element.
       if (instances.get(element) === state) {
@@ -456,17 +457,32 @@
     return state;
   };
 
+  const sourceURL = (input, options) => {
+    if (options?.sourceType === "text") return;
+    if (typeof input === "string") return /^(?:https?:\/\/|\.{1,2}\/|\/(?![/*]))[^\s]+$/i.test(input) ? input : undefined;
+    if (input && Object.hasOwn(input, "url") && typeof input.url === "string" && Object.keys(input).length === 1) return input.url.trim() || undefined;
+  };
+  const fetchSource = async (url, signal) => {
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error(`Unable to load source: HTTP ${response.status}.`);
+    return response.text();
+  };
+
   // ===== PUBLIC API =====
   // Parse an inert XML document and render elements/attributes as text, with cancellable chunked DOM creation.
   function byXMLviewer(element, source, options = {}) {
-    return renderViewer(element, source, options);
+    return renderViewer(element, source, options, undefined, sourceURL(source, options));
   }
 
-  function renderViewer(element, source, options, previous) {
+  function renderViewer(element, source, options, previous, url) {
     if (source === undefined) source = element?.textContent ?? "";
     options = { ...options };
     const { search: showSearch = false, copyNodes = false, copyValues = false, expandCollapse = false, collapsible = true } = options;
     const state = mount(element, options, () => source, previous);
+    if (url) {
+      state.request = previous?.request ?? new AbortController();
+      state.sourceText = previous?.sourceText ?? fetchSource(url, state.request.signal);
+    }
     const actions = node("div", "byVIEWactions");
     const search = node("input");
     search.type = "search";
@@ -580,6 +596,8 @@
     element.setAttribute("aria-busy", "true");
     state.ready = (async () => {
       try {
+        if (state.sourceText) source = await state.sourceText;
+        if (!state.active) return false;
         await pause();
         if (!state.active) return false;
         records = xmlRecords(byXMLviewer.parse(source), options);
@@ -618,7 +636,7 @@
           for (const branch of tree.querySelectorAll("details")) branch.open = Boolean(search.value) || !options.collapsed;
         }
         if (redraw) {
-          return renderViewer(element, source, options, state).ready;
+          return renderViewer(element, source, options, state, url).ready;
         }
       }
     });

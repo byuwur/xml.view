@@ -58,6 +58,15 @@ Open [index.html](index.html) locally. Its host assets use the network. Exported
 
 `byXMLviewer(element, xml?, options?)` accepts a string; omitted input uses the target's text. Empty/whitespace-only input displays an empty state. Malformed or oversized input displays an error and resolves `ready` false.
 
+A source string beginning with `https://`, `http://`, `/`, `./`, or `../` and containing no whitespace loads a file. Use `{ url: "example.xml" }` for a bare filename. To display a URL string literally, pass `{ sourceType: "text" }` in the options.
+
+```javascript
+const viewer = byXMLviewer(target, "./example.xml");
+await viewer.ready;
+```
+
+Relative URLs resolve against the page. Cross-origin files require CORS. A failed or superseded load resolves `ready` to `false`.
+
 `byXMLviewer.parse(xml)` uses the browser's XML parser and returns a detached XMLDocument, or null for empty input. It shares the renderer's parser and limits. Invalid input throws `TypeError`, `SyntaxError`, or `RangeError`.
 
 Names retain namespace prefixes and declarations. Attribute values and character references are decoded. Node copy includes descendants and uses XMLSerializer, so quotes, entities, and empty-element formatting may differ from the source. Main Copy preserves the original source.
