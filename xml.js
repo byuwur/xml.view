@@ -11,7 +11,7 @@
   if (global.byXMLviewer?.initialized) return;
 
   // ===== METADATA =====
-  byXMLviewer.VERSION = "2.4"; // 2026-11-25
+  byXMLviewer.VERSION = "2.5"; // 2026-11-26
   // Mirrored helpers are checked by code.view/.github/scripts/check-family.mjs.
   const componentName = "XML.view";
   const themeFile = "xml";
